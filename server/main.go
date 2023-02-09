@@ -1,7 +1,8 @@
 package server
 
 import (
-	"fmt"
+	"github.com/hasbai/ipv6-canvas/lib"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -14,10 +15,12 @@ func Serve(httpAddr string) {
 	c := make(chan os.Signal)
 	signal.Notify(c, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	s := <-c
-	fmt.Println("exiting... ", s)
+	log.Println("received", s)
 	exit()
 }
 
 func exit() {
+	IMG.Save(lib.ImageSavePath)
+	log.Printf("image saved to %s, exiting...", lib.ImageSavePath)
 	os.Exit(0)
 }

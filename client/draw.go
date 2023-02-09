@@ -13,6 +13,7 @@ func Draw(filepath, cidr string, resize, offset image.Point) {
 	prefix := parsePrefix(cidr)
 
 	img := lib.LoadImage(filepath)
+	img.Resize(resize)
 	for i := img.Bounds().Min.X; i < img.Bounds().Max.X; i++ {
 		for j := img.Bounds().Min.Y; j < img.Bounds().Max.Y; j++ {
 			p := lib.Pixel{X: i + offset.X, Y: j + offset.Y, Color: img.RGBAAt(i, j)}

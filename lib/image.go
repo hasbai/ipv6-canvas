@@ -3,6 +3,7 @@ package lib
 import (
 	"bytes"
 	"fmt"
+	"github.com/disintegration/imaging"
 	"image"
 	"image/png"
 	"log"
@@ -15,17 +16,26 @@ const SIZE = 256
 
 type Image struct {
 	*image.RGBA
-	*sync.Mutex
+	sync.Mutex
 }
 
-func (img Image) Modify(p Pixel) {
+func (img *Image) Modify(p Pixel) {
 	img.Lock()
 	defer img.Unlock()
 	img.Set(p.X, p.Y, p.Color)
 }
 
+func (img *Image) Resize(p image.Point) {
+	if p.X <= 0 || p.Y <= 0 {
+		return
+	}
+	img.Lock()
+	defer img.Unlock()
+	img.RGBA = (*image.RGBA)(imaging.Resize(img, p.X, p.Y, imaging.Lanczos))
+}
+
 // Encode encodes an Image to png
-func (img Image) Encode() ([]byte, error) {
+func (img *Image) Encode() ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := png.Encode(buf, img)
 	if err != nil {
@@ -34,12 +44,12 @@ func (img Image) Encode() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (img Image) Save() {
+func (img *Image) Save(path string) {
 	data, err := img.Encode()
 	if err != nil {
 		log.Fatalf("error saving image %v", err)
 	}
-	os.WriteFile(ImageSavePath, data, 0644)
+	os.WriteFile(path, data, 0644)
 }
 
 func LoadImage(path string) Image {
@@ -51,17 +61,15 @@ func LoadImage(path string) Image {
 				Min: image.Point{},
 				Max: image.Point{X: SIZE, Y: SIZE},
 			}),
-			Mutex: &sync.Mutex{},
 		}
 	}
 	log.Println("decoding image...")
-	img, err := png.Decode(fp)
+	img, err := png.Decode(fp) // returns NRGBA
 	if err != nil {
 		log.Fatalf("error decoding image %v", err)
 	}
 	return Image{
-		RGBA:  img.(*image.RGBA),
-		Mutex: &sync.Mutex{},
+		RGBA: (*image.RGBA)(img.(*image.NRGBA)),
 	}
 }
 
@@ -73,6 +81,9 @@ func ParsePoint(s string) image.Point {
 	_, err := fmt.Sscanf(s, "%d,%d", &x, &y)
 	if err != nil {
 		log.Fatalf("point must be in the format <x>,<y>")
+	}
+	if x <= 0 || y <= 0 {
+		log.Fatalf("point must be positive")
 	}
 	return image.Point{X: x, Y: y}
 }
