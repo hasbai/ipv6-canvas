@@ -3,7 +3,6 @@ package lib
 import (
 	"bytes"
 	"image"
-	"image/color"
 	"image/png"
 	"log"
 	"os"
@@ -21,7 +20,7 @@ type Image struct {
 func (img Image) Modify(p Pixel) {
 	img.Lock()
 	defer img.Unlock()
-	img.Set(p.X, p.Y, color.RGBA{})
+	img.Set(p.X, p.Y, p.Color)
 }
 
 // Encode encodes an Image to png

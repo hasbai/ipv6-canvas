@@ -4,7 +4,6 @@ import (
 	"github.com/hasbai/ipv6-canvas/lib"
 	"log"
 	"net"
-	"time"
 )
 
 func Draw(filepath, cidr string) {
@@ -24,7 +23,6 @@ func Draw(filepath, cidr string) {
 			if err != nil {
 				log.Fatalf("error ping %s: %v", ip, err)
 			}
-			time.Sleep(time.Second / 2)
 		}
 	}
 }

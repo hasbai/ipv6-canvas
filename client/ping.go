@@ -57,7 +57,7 @@ func ping(ip net.IP, conn *icmp.PacketConn) error {
 		return err
 	}
 
-	log.Printf("got %d bytes from %v after %v: %s", n, peer, time.Since(timeStart), data)
+	log.Printf("ping %v %d bytes %v %s", peer, n, time.Since(timeStart), data)
 	return nil
 }
 
@@ -81,7 +81,7 @@ func init() {
 		Type: ipv6.ICMPTypeEchoRequest, Code: 0,
 		Body: &icmp.Echo{
 			ID: os.Getpid() & 0xffff, Seq: 1,
-			Data: []byte("HELLO-R-U-THERE"),
+			Data: []byte("PING"),
 		},
 	}
 	var err error
