@@ -2,11 +2,12 @@ package client
 
 import (
 	"github.com/hasbai/ipv6-canvas/lib"
+	"image"
 	"log"
 	"net"
 )
 
-func Draw(filepath, cidr string) {
+func Draw(filepath, cidr string, resize, offset image.Point) {
 	conn := dial()
 	defer conn.Close()
 	prefix := parsePrefix(cidr)
@@ -14,7 +15,7 @@ func Draw(filepath, cidr string) {
 	img := lib.LoadImage(filepath)
 	for i := img.Bounds().Min.X; i < img.Bounds().Max.X; i++ {
 		for j := img.Bounds().Min.Y; j < img.Bounds().Max.Y; j++ {
-			p := lib.Pixel{X: i, Y: j, Color: img.RGBAAt(i, j)}
+			p := lib.Pixel{X: i + offset.X, Y: j + offset.Y, Color: img.RGBAAt(i, j)}
 			if p.Color.R == 255 && p.Color.G == 255 && p.Color.B == 255 {
 				continue
 			}

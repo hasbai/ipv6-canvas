@@ -6,8 +6,6 @@ import (
 
 var IMG lib.Image
 
-const HttpAddr = "localhost:8000"
-
 func init() {
 	IMG = lib.LoadImage(lib.ImageSavePath)
 }

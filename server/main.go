@@ -7,8 +7,8 @@ import (
 	"syscall"
 )
 
-func Serve() {
-	go serveHTTP()
+func Serve(httpAddr string) {
+	go serveHTTP(httpAddr)
 	go serveICMP()
 
 	c := make(chan os.Signal)

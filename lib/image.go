@@ -2,6 +2,7 @@ package lib
 
 import (
 	"bytes"
+	"fmt"
 	"image"
 	"image/png"
 	"log"
@@ -45,7 +46,6 @@ func LoadImage(path string) Image {
 	fp, err := os.Open(path)
 	defer fp.Close()
 	if err != nil {
-		log.Println("image does not exist, create one")
 		return Image{
 			RGBA: image.NewRGBA(image.Rectangle{
 				Min: image.Point{},
@@ -63,4 +63,16 @@ func LoadImage(path string) Image {
 		RGBA:  img.(*image.RGBA),
 		Mutex: &sync.Mutex{},
 	}
+}
+
+func ParsePoint(s string) image.Point {
+	if s == "" {
+		return image.Point{}
+	}
+	var x, y int
+	_, err := fmt.Sscanf(s, "%d,%d", &x, &y)
+	if err != nil {
+		log.Fatalf("point must be in the format <x>,<y>")
+	}
+	return image.Point{X: x, Y: y}
 }

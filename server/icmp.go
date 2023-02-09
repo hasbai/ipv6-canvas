@@ -19,7 +19,7 @@ func serveICMP() {
 	if conn6 == nil {
 		log.Fatalf("Error getting IPv6 packet conn: %s", err)
 	}
-	log.Println("Listening on", conn6.LocalAddr())
+	log.Println("ICMP listening on", conn6.LocalAddr())
 
 	for {
 		err = handleICMP(conn6)

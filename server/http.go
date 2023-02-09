@@ -19,8 +19,9 @@ func getImage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func serveHTTP() {
-	err := http.ListenAndServe(HttpAddr, nil)
+func serveHTTP(httpAddr string) {
+	log.Println("HTTP listening on", httpAddr)
+	err := http.ListenAndServe(httpAddr, nil)
 	if err != nil {
 		log.Fatalf("Error serving http: %s", err)
 	}
