@@ -2,7 +2,6 @@ package lib
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/disintegration/imaging"
 	"image"
 	"image/png"
@@ -15,7 +14,7 @@ const ImageSavePath = "save.png"
 const SIZE = 256
 
 type Image struct {
-	*image.RGBA
+	*image.NRGBA
 	sync.Mutex
 }
 
@@ -31,7 +30,7 @@ func (img *Image) Resize(p image.Point) {
 	}
 	img.Lock()
 	defer img.Unlock()
-	img.RGBA = (*image.RGBA)(imaging.Resize(img, p.X, p.Y, imaging.Lanczos))
+	img.NRGBA = imaging.Resize(img, p.X, p.Y, imaging.Lanczos)
 }
 
 // Encode encodes an Image to png
@@ -55,35 +54,36 @@ func (img *Image) Save(path string) {
 func LoadImage(path string) Image {
 	fp, err := os.Open(path)
 	defer fp.Close()
+	var out *image.NRGBA
 	if err != nil {
-		return Image{
-			RGBA: image.NewRGBA(image.Rectangle{
-				Min: image.Point{},
-				Max: image.Point{X: SIZE, Y: SIZE},
-			}),
-		}
+		return NewImage()
 	}
+
 	log.Println("decoding image...")
-	img, err := png.Decode(fp) // returns NRGBA
+	img, err := png.Decode(fp)
 	if err != nil {
 		log.Fatalf("error decoding image %v", err)
 	}
-	return Image{
-		RGBA: (*image.RGBA)(img.(*image.NRGBA)),
+	switch img := img.(type) {
+	case *image.RGBA:
+		out = (*image.NRGBA)(img)
+	case *image.NRGBA:
+		out = img
+	default:
+		panic("image format not supported")
 	}
+	return Image{NRGBA: out}
 }
 
-func ParsePoint(s string) image.Point {
-	if s == "" {
-		return image.Point{}
+func NewImage() Image {
+	img := image.NewNRGBA(image.Rectangle{
+		Min: image.Point{},
+		Max: image.Point{X: SIZE, Y: SIZE},
+	})
+	for x := 0; x < SIZE; x++ {
+		for y := 0; y < SIZE; y++ {
+			img.Set(x, y, image.White)
+		}
 	}
-	var x, y int
-	_, err := fmt.Sscanf(s, "%d,%d", &x, &y)
-	if err != nil {
-		log.Fatalf("point must be in the format <x>,<y>")
-	}
-	if x <= 0 || y <= 0 {
-		log.Fatalf("point must be positive")
-	}
-	return image.Point{X: x, Y: y}
+	return Image{NRGBA: img}
 }

@@ -8,16 +8,16 @@ import (
 )
 
 type Pixel struct {
-	X     int        `json:"x"`
-	Y     int        `json:"y"`
-	Color color.RGBA `json:"color"`
+	X     int         `json:"x"`
+	Y     int         `json:"y"`
+	Color color.NRGBA `json:"color"`
 }
 
 func IP2Pixel(ip net.IP) Pixel {
 	return Pixel{
 		X: int(ip[8])<<8 + int(ip[9]),
 		Y: int(ip[10])<<8 + int(ip[11]),
-		Color: color.RGBA{
+		Color: color.NRGBA{
 			R: ip[12],
 			G: ip[13],
 			B: ip[14],
