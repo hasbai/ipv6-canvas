@@ -1,0 +1,12 @@
+
+.hidden {
+    display: none;
+}
+
+.bold {
+    font-weight: bold;
+}
+
+.transparent {
+    color: transparent;
+}
