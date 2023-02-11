@@ -21,7 +21,7 @@ type Image struct {
 func (img *Image) Modify(p Pixel) {
 	img.Lock()
 	defer img.Unlock()
-	img.Set(p.X, p.Y, p.Color)
+	img.Set(p.Point.X, p.Point.Y, p.Color)
 }
 
 func (img *Image) Resize(p image.Point) {
