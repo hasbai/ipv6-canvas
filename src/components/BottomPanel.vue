@@ -11,48 +11,47 @@
         <Icon size="1rem">
           <PeopleAltFilled/>
         </Icon>
-        &nbsp;{{ online }}
       </div>
     </div>
     <ColorSelector @updatePixel="onUpdatePixel"></ColorSelector>
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
   import ColorSelector from "@/components/ColorSelector.vue"
   import {LocationOnFilled, PeopleAltFilled} from '@vicons/material'
   import {Icon} from '@vicons/utils'
-  import {mapState} from "vuex";
+  import {Point} from "@/models/point"
+  import {isValidCoordinate} from "@/utils"
+  import {computed} from "vue"
 
-  export default {
-    name: 'BottomPanel',
-    components: {ColorSelector, LocationOnFilled, Icon, PeopleAltFilled},
-    props: {},
-    data() {
-      return {}
+  const props = defineProps({
+    current: {
+      required: true,
+      type: Point,
     },
-    computed: {
-      ...mapState(['x', 'y', 'ratio']),
-      online() {
-        return this.$store.state.metaData.online || 0
-      },
-      originalSize() {
-        return this.$store.state.metaData.canvas_size
-      },
-      coordinateStr() {
-        if (this.x > 0 && this.y > 0 && this.x <= this.originalSize && this.y <= this.originalSize) {
-          return `(${this.x}, ${this.y})`
-        } else {
-          return '(-, -)'
-        }
-      },
+    imageSize: {
+      required: true,
+      type: Point,
     },
-    methods: {
-      onUpdatePixel(e) {
-        console.log(e)
-      }
+    ratio: {
+      required: true,
+      type: Number,
+    },
+  })
+
+  const coordinateStr = computed(() => {
+    if (isValidCoordinate(props.current, props.imageSize)) {
+      return props.current.toString()
+    } else {
+      return '(-, -)'
     }
+  })
+
+  function onUpdatePixel(color: string) {
+    console.log(color)
   }
+
 </script>
 
 <style scoped>

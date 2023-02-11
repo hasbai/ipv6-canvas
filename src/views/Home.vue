@@ -1,229 +1,221 @@
 <template>
-  <main ref="main">
-    <PixelInfo></PixelInfo>
-    <HomeLoader v-if="imgLoading">
-    </HomeLoader>
+  <main id="main">
+    <PixelInfo :pixel="pixel" :offset="offset" :ratio="ratio" :active="pixelInfoActive"></PixelInfo>
+    <HomeLoader v-if="imgLoading"></HomeLoader>
     <canvas
-      v-else
-      id="canvas" ref="canvas"
-      :width="w" :height="h"
-      @wheel="onWheel"
-      @mousemove="onMouseMove"
-      @mousedown="onMouseDown"
-      @mouseup="onMouseUp"
+        id="canvas"
+        v-else
+        :width="canvasSize.x" :height="canvasSize.y"
+        @wheel="onWheel"
+        @mousemove="onMouseMove"
+        @mousedown="onMouseDown"
+        @mouseup="onMouseUp"
     >
     </canvas>
-    <BottomPanel></BottomPanel>
+    <BottomPanel :current="current" :image-size="imgSize" :ratio="ratio"></BottomPanel>
   </main>
 </template>
 
 
-<script>
-import bus from 'vue3-eventbus'
-import {mapState} from "vuex"
+<script setup lang="ts">
 import BottomPanel from "@/components/BottomPanel.vue"
 import PixelInfo from "@/components/PixelInfo.vue"
-import HomeLoader from "@/components/HomeLoader.vue";
-import {useMessage} from "naive-ui";
-export default {
-  name: 'Home',
-  components: {
-    HomeLoader,
-    PixelInfo,
-    BottomPanel,
-  },
-  setup() {
-    window.$message = useMessage()
-  },
-  data() {
-    return {
-      w: 0,  // canvas width
-      h: 0,  // canvas height
-      targetRatio: 24,  // 点击放大后的 ratio
-      imgLoading: true
+import HomeLoader from "@/components/HomeLoader.vue"
+import {useMessage} from "naive-ui"
+import {Point} from "@/models/point"
+import {nextTick, onMounted, reactive, ref} from "vue"
+import {isValidCoordinate} from "@/utils"
+import {Color, Pixel} from "@/models/pixel"
+
+function updateCoordinate(e: MouseEvent) {
+  current.set(new Point(e.offsetX, e.offsetY).sub(offset).div(ratio.value).floor())
+}
+
+function drawPixel(pixel: Pixel) {
+  const d = fixedCtx.createImageData(1, 1)
+  d.data[0] = pixel.color.r
+  d.data[1] = pixel.color.g
+  d.data[2] = pixel.color.b
+  d.data[3] = pixel.color.a
+  fixedCtx.putImageData(d, pixel.coordinate.x, pixel.coordinate.y)
+  drawImage()
+}
+
+function drawImage(r: number = ratio.value, p: Point = current) {
+  if (r !== ratio.value) {
+    offset.sub(p.copy().times(r - ratio.value))
+    ratio.value = r
+  }
+  ctx.imageSmoothingEnabled = false
+  clearImage()
+  ctx.drawImage(
+      fixedCanvas,
+      offset.x,
+      offset.y,
+      Math.floor(imgSize.x * r),
+      Math.floor(imgSize.y * r),
+  )
+}
+
+function clearImage() {
+  ctx.fillStyle = 'grey'  // clear canvas
+  ctx.fillRect(0, 0, canvasSize.x, canvasSize.y)
+}
+
+function moveImage(p: Point) {
+  offset.add(p)
+  drawImage()
+}
+
+let mouseDown = false
+let mouseLocation = new Point(0, 0)
+
+async function onKeyDown(e: KeyboardEvent) {
+  const _move = (px = 4) => {
+    if (e.key === 'w' || e.key === 'ArrowUp') {
+      moveImage(new Point(0, px))
+    } else if (e.key === 'a' || e.key === 'ArrowLeft') {
+      moveImage(new Point(px, 0))
+    } else if (e.key === 's' || e.key === 'ArrowDown') {
+      moveImage(new Point(0, -px))
+    } else if (e.key === 'd' || e.key === 'ArrowRight') {
+      moveImage(new Point(-px, 0))
     }
-  },
-  computed: {
-    ...mapState(['ratio', 'x', 'y', 'dx', 'dy', 'pixelData', 'metaData']),
-    originalSize() {
-      return 256
-    },
-    validCoordinate() {
-      return this.x > 0 && this.y > 0 && this.x <= this.originalSize && this.y <= this.originalSize
-    },
-    currentSize() {
-      return Math.floor(this.originalSize * this.ratio)
-    },
-  },
-  methods: {
-    updatePixel(pixel = this.pixelData) {
-      const imageData = this.fixedCtx.createImageData(1, 1)
-      for (let i = 0; i < 3; i++) {
-        imageData.data[i] = parseInt(pixel.color.slice(2 * i, 2 * i + 2), 16)
-      }
-      imageData.data[3] = 255
-      this.fixedCtx.putImageData(imageData, pixel.x - 1, pixel.y - 1)
-      this.drawImage()
-    },
-    clearImage() {
-      // clear canvas
-      this.ctx.fillStyle = 'white'
-      this.ctx.fillRect(0, 0, this.w, this.h)
-    },
-    drawImage(r = this.ratio, x = this.x, y = this.y) {
-      this.$store.commit('setDxDy', [
-        this.dx - (r - this.ratio) * x,
-        this.dy - (r - this.ratio) * y
-      ])
-      this.$store.commit('setRatio', r)
-      this.ctx.imageSmoothingEnabled = false
-      this.clearImage()
-      this.ctx.drawImage(this.canvas, this.dx, this.dy, this.currentSize, this.currentSize)
-    },
-    moveImage(x, y) {
-      this.$store.commit('setDxDy', [
-        this.dx + x,
-        this.dy + y
-      ])
-      this.drawImage()
-    },
-    calculateCoordinate(e) {
-      const calculate = (offset, d) => {
-        return Math.ceil((offset - d) / this.ratio)
-      }
-      const x = calculate(e.offsetX, this.dx)
-      const y = calculate(e.offsetY, this.dy)
-      this.$store.commit('setCoordinate', [x, y])
-    },
-    async onKeyDown(e) {
-      const _move = (px = 4) => {
-        if (e.key === 'w' || e.key === 'ArrowUp') {
-          this.moveImage(0, px)
-        } else if (e.key === 'a' || e.key === 'ArrowLeft') {
-          this.moveImage(px, 0)
-        } else if (e.key === 's' || e.key === 'ArrowDown') {
-          this.moveImage(0, -px)
-        } else if (e.key === 'd' || e.key === 'ArrowRight') {
-          this.moveImage(-px, 0)
-        }
-      }
-      for (let i = 0; i < 12; i++) {
-        _move()
-        await new Promise((r) => setTimeout(r, 2))
-      }
-      bus.emit('hidePixelInfo')
-    },
-    async onClick(e) {
-      this.calculateCoordinate(e)
-      if (!this.validCoordinate) {
-        return
-      }
-      // transition
-      let r = this.ratio
-      const step = r < this.targetRatio ? 0.2 : -0.2
-      while (r > this.targetRatio + 0.01 || r < this.targetRatio - 0.01) {
-        r += step
-        this.drawImage(r)
-        await new Promise((r) => setTimeout(r, 1))
-      }
-      this.drawImage(this.targetRatio)
-      // show pixel info
-      bus.emit('showPixelInfo')
-      bus.emit('click')
-    },
-    onMouseMove(e) {
-      if (this.mouseDown) {
-        this.moveImage(e.movementX, e.movementY)
-        bus.emit('hidePixelInfo')
-      }
-      this.calculateCoordinate(e)
-    },
-    onMouseDown(e) {
-      this.mouseDown = true
-      this.mouseClientX = e.clientX
-      this.mouseClientY = e.clientY
-    },
-    onMouseUp(e) {
-      this.mouseDown = false
-      if (this.mouseClientX === e.clientX && this.mouseClientY === e.clientY) {
-        this.onClick(e)
-      }
-    },
-    async onWheel(e) {
-      let level = -e.deltaY > 0 ? 1 : -1 // 正值为放大，负值为缩小
-      level *= Math.ceil(this.ratio / 8)
-      this.drawImage(Math.max(this.ratio + level, 1))
-    },
-    async onMounted() {
-      // load image
-      let img = new Image()
-      img.src = '/image'
-      img.crossOrigin = 'Anonymous'
-      await new Promise((r) => (img.onload = r))
-      await new Promise(r => setTimeout(r, 1000))
-      this.imgLoading = false
-      await this.$nextTick()
-      // init canvas
-      this.w = this.$refs.main.offsetWidth
-      this.h = this.$refs.main.offsetHeight
-      this.ctx = this.$refs.canvas.getContext('2d', {alpha: false})
-      this.clearImage()
-      await this.$nextTick()
-      // set data
-      this.$store.commit('setDxDy', [
-        Math.floor((this.w - this.originalSize) / 2),
-        Math.floor((this.h - this.originalSize) / 2)
-      ])
-      // create a fixed canvas
-      let canvas = document.createElement('canvas')
-      canvas.width = canvas.height = this.originalSize
-      const ctx = canvas.getContext('2d', {alpha: false})
-      ctx.drawImage(img, 0, 0, img.width, img.width)
-      this.canvas = canvas
-      this.fixedCtx = ctx
-      // draw to the real canvas
-      const center = Math.floor(this.originalSize / 2)
-      this.drawImage(1, center, center)
-    },
-    connectWs() {
-      const connect = () => {
-        return new WebSocket(window.location.origin.replace('http', 'ws') + '/api/ws')
-      }
-      let ws = connect()
-      ws.onopen = () => {
-        console.log('websocket connected')
-      }
-      ws.onerror = () => {
-        console.log('websocket connect failed')
-        ws = connect()
-      }
-      ws.onclose = () => {
-        console.log('websocket disconnected')
-        ws = connect()
-      }
-      ws.onmessage = this.onMessage
-    },
-    onMessage(e) {
-      const data = JSON.parse(e.data)
-      if (data.type === 'pixel') {
-        this.updatePixel(data.data)
-      }
-      if (data.type === 'meta') {
-        this.$store.commit('setMetaData', data.data)
-      }
-    }
-  },
-  mounted() {
-    this.onMounted()
-    document.addEventListener('keydown', this.onKeyDown)
-    this.connectWs()
-  },
-  created() {
-    bus.on('updatePixel', this.updatePixel)
+  }
+  for (let i = 0; i < 12; i++) {
+    _move()
+    await new Promise((r) => setTimeout(r, 2))
+  }
+  hidePixelInfo()
+}
+
+async function onClick(e: MouseEvent) {
+  updateCoordinate(e)
+  hidePixelInfo()
+  if (!isValidCoordinate(current, imgSize)) {
+    return
+  }
+  // transition
+  let r = ratio.value
+  const step = r < targetRatio ? 0.2 : -0.2
+  while (r > targetRatio + 0.01 || r < targetRatio - 0.01) {
+    r += step
+    drawImage(r, current)
+    await new Promise((r) => setTimeout(r, 1))
+  }
+  drawImage(targetRatio, current)
+  showPixelInfo()
+}
+
+function onMouseMove(e: MouseEvent) {
+  if (mouseDown && isValidCoordinate(current, imgSize)) {
+    moveImage(new Point(e.movementX, e.movementY))
+    hidePixelInfo()
+  }
+  updateCoordinate(e)
+}
+
+function onMouseDown(e: MouseEvent) {
+  mouseDown = true
+  mouseLocation = new Point(e.clientX, e.clientY)
+}
+
+function onMouseUp(e: MouseEvent) {
+  mouseDown = false
+  if (mouseLocation.equals(new Point(e.clientX, e.clientY))) {
+    onClick(e)
   }
 }
+
+async function onWheel(e: WheelEvent) {
+  let level = -e.deltaY > 0 ? 1 : -1 // 正值为放大，负值为缩小
+  level *= Math.ceil(ratio.value / 8)
+  drawImage(Math.max(ratio.value + level, 1), current)
+}
+
+const pixel = reactive(new Pixel(new Point(0, 0), new Color(0, 0, 0, 0)))
+const pixelInfoActive = ref(false)
+
+function showPixelInfo() {
+  pixel.coordinate = current.copy()
+  pixel.color.fromCanvas(fixedCtx, current)
+  pixelInfoActive.value = true
+}
+
+function hidePixelInfo() {
+  pixelInfoActive.value = false
+}
+
+function connectWs() {
+  const connect = () => {
+    return new WebSocket(window.location.origin.replace('http', 'ws') + '/ws')
+  }
+  let ws = connect()
+  ws.onopen = () => {
+    console.log('websocket connected')
+  }
+  ws.onerror = () => {
+    console.log('websocket connect failed')
+  }
+  ws.onclose = () => {
+    console.log('websocket disconnected')
+  }
+  ws.onmessage = onMessage
+}
+
+function onMessage(e: MessageEvent) {
+  const data = JSON.parse(e.data)
+  if (data.type === 'pixel') {
+    drawPixel(data.data)
+  }
+}
+
+const targetRatio = 24
+const ratio = ref(1)
+const imgLoading = ref(true)
+const current = reactive(new Point(0, 0))
+const offset = reactive(new Point(0, 0))
+const canvasSize = reactive(new Point(0, 0))
+const imgSize = reactive(new Point(0, 0))
+let ctx: CanvasRenderingContext2D
+let fixedCanvas: HTMLCanvasElement
+let fixedCtx: CanvasRenderingContext2D
+
+// window.$message = useMessage()
+document.addEventListener('keydown', onKeyDown)
+connectWs()
+
+onMounted(async () => {
+  console.log('mounted')
+  // load image
+  let img = new Image()
+  img.src = '/image'
+  img.crossOrigin = 'anonymous'
+  await new Promise((r) => (img.onload = r))
+  imgSize.set(new Point(img.naturalWidth, img.naturalHeight))
+  imgLoading.value = false
+  await nextTick()
+
+// init canvas
+  const main = document.getElementById('main')!
+  canvasSize.set(new Point(main.offsetWidth, main.offsetHeight))
+  ctx = (document.getElementById('canvas') as HTMLCanvasElement).getContext('2d')!
+  clearImage()
+  await nextTick()
+
+// create a fixed canvas
+  fixedCanvas = document.createElement('canvas')
+  fixedCanvas.width = imgSize.x
+  fixedCanvas.height = imgSize.y
+  fixedCtx = fixedCanvas.getContext('2d', {willReadFrequently: true})!
+  fixedCtx.drawImage(img, 0, 0, imgSize.x, imgSize.y)
+
+// draw to the real canvas
+  offset.set(canvasSize.copy().sub(imgSize).div(2).floor())
+  drawImage()
+})
+
 </script>
 
 <style scoped>
-
 </style>

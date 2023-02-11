@@ -1,53 +1,26 @@
 <template>
   <div class="pixel">
-    <div v-if="isLoading" class="loader">
-      <div class="spinner">
-        <div class="double-bounce1"></div>
-        <div class="double-bounce2"></div>
-      </div>
+    <div class="coordinates bold">
+      <span>X：{{ props.coordinate.x }}</span>
+      <span>Y：{{ props.coordinate.y }}</span>
     </div>
-    <div v-else>
-      <div class="coordinates">
-        <div v-for="(value, i) in [x, y]" :key="i" class="bold">
-          <span>{{ i === 0 ? 'X' : 'Y' }}：{{ value }}</span>
-        </div>
-      </div>
-      <div>编辑次数：{{ modify_times }}</div>
-      <div>上次编辑：{{ modifyTime }}</div>
-      <hr>
-      <div class="color bold">
-        <span>HEX</span>
-        <div class="value">
-          <span>#{{ color.toUpperCase() }}</span>
-          <span class="color-block" :style="{backgroundColor: '#' + color}">向晚</span>
-        </div>
+    <hr>
+    <div class="color bold">
+      <span>HEX</span>
+      <div class="value">
+        <span style="margin-right: 0.25em">{{ props.color.toString() }}</span>
+        <span class="color-block" :style="{backgroundColor: props.color.toString()}">向晚</span>
       </div>
     </div>
   </div>
 </template>
 
-<script>
-import {NCard} from "naive-ui";
-import {timeDifference} from "@/utils";
+<script setup lang="ts">
 
-export default {
-  name: 'Pixel',
-  components: {NCard},
-  props: {
-    id: {type: Number, default: 1},
-    x: {type: Number, default: 1},
-    y: {type: Number, default: 1},
-    color: {type: String, default: ''},
-    modify_times: {type: Number, default: 0},
-    modify_time: {type: String, default: ''},
-    isLoading: {type: Boolean, default: false}
-  },
-  computed: {
-    modifyTime() {
-      return timeDifference(this.modify_time)
-    }
-  }
-}
+import type {Pixel} from "@/models/pixel";
+
+const {props} = defineProps<{ props: Pixel }>()
+
 </script>
 
 <style scoped>

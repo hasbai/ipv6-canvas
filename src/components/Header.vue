@@ -2,10 +2,10 @@
   <header>
     <div class="github">
       <n-button
-        href="https://github.com/OpenTreeHole/canvas_frontend"
-        tag="a"
-        target="view_window"
-        :bordered="false"
+          href="https://github.com/hasbai/ipv6-canvas"
+          tag="a"
+          target="view_window"
+          :bordered="false"
       >
         <span style="margin-right: 0.5rem">Github Repo</span>
         <n-icon :size="'1.5rem'">
@@ -16,19 +16,10 @@
   </header>
 </template>
 
-<script>
-  import {NButton, NIcon, NText} from 'naive-ui'
-  import {GithubFilled} from '@vicons/antd'
+<script setup lang="ts">
+import {NButton, NIcon} from 'naive-ui'
+import {GithubFilled} from '@vicons/antd'
 
-  export default {
-    name: 'Header',
-    components: {
-      NIcon,
-      GithubFilled,
-      NText,
-      NButton,
-    },
-  }
 </script>
 
 <style scoped></style>

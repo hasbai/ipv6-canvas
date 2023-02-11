@@ -1,62 +1,40 @@
 <template>
   <div
-    class="pixel-info"
-    v-if="active"
-    :style="{
+      class="pixel-info"
+      v-if="active"
+      :style="{
         height: ratio + 'px',
         width: ratio + 'px',
         top: frameTop + 'px',
         left: frameLeft + 'px'
       }"
   >
-    <Pixel :="pixelData" :is-loading="isLoading"></Pixel>
+    <PixelData :props="props.pixel" :is-loading="isLoading"></PixelData>
   </div>
 </template>
 
-<script>
-import Pixel from "@/components/Pixel.vue";
-import {mapState} from 'vuex'
-import bus from 'vue3-eventbus'
+<script setup lang="ts">
+import PixelData from "@/components/PixelData.vue"
+import {computed} from "vue"
+import {Pixel} from "@/models/pixel"
+import {Point} from "@/models/point"
 
-export default {
-  name: "PixelInfo",
-  components: {Pixel,},
-  data() {
-    return {
-      active: false,
-      isLoading: false,
-      frameTop: 0,
-      frameLeft: 0
-    }
-  },
-  computed: {
-    ...mapState(['x', 'y', 'dx', 'dy', 'ratio', 'pixelData']),
-  },
-  watch: {},
-  methods: {
-    async getPixel(x = this.x, y = this.y) {
-      let r = await fetch(`/api/pixels?x=${x}&y=${y}`)
-      this.$store.commit('setPixelData', await r.json())
-    },
-    async show() {
-      this.active = true
-      this.frameTop = this.dy + (this.y - 1) * this.ratio - 1  // 1是边框宽度
-      this.frameLeft = this.dx + (this.x - 1) * this.ratio - 1
-      this.isLoading = true
-      await this.getPixel()
-      this.isLoading = false
-    },
-    hide() {
-      this.active = false
-      this.frameTop = 0
-      this.frameLeft = 0
-    }
-  },
-  created() {
-    bus.on('showPixelInfo', this.show)
-    bus.on('hidePixelInfo', this.hide)
-  }
-}
+const props = defineProps({
+  pixel: {type: Pixel, required: true},
+  ratio: {type: Number, required: true},
+  offset: {type: Point, required: true},
+  active: {type: Boolean, default: false},
+})
+
+const frameLeft = computed(() => {
+  return props.offset.x + props.pixel.coordinate.x * props.ratio - 1
+})
+const frameTop = computed(() => {
+  return props.offset.y + props.pixel.coordinate.y * props.ratio - 1
+})
+
+let isLoading = false
+
 </script>
 
 <style scoped>
