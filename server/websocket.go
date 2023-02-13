@@ -98,6 +98,7 @@ func modifyImage(p lib.Pixel) {
 }
 
 func handleWS(ws *websocket.Conn) {
+	ws.PayloadType = websocket.BinaryFrame
 	client := Client{
 		conn:  ws,
 		send:  make(chan []byte),

@@ -38,18 +38,21 @@ func (p *Pixel) Unmarshal(data []byte) error {
 	p.Color.G = data[6]
 	p.Color.B = data[7]
 	p.Color.A = data[8]
+	if p.Point.X < 0 || p.Point.Y < 0 || p.Point.X >= SIZE || p.Point.Y >= SIZE {
+		return fmt.Errorf("pixel point should between 0 and %d", SIZE)
+	}
 	return nil
 }
 
-func IP2Pixel(ip net.IP) Pixel {
+func IP2Pixel(ip net.IP) (Pixel, error) {
 	data := ip[7:16]
 	data[0] = MessageTypePixel
 	p := Pixel{}
 	err := p.Unmarshal(data)
 	if err != nil {
-		log.Fatal(err)
+		return p, err
 	}
-	return p
+	return p, nil
 }
 
 func (p *Pixel) String() string {
