@@ -8,7 +8,10 @@ import (
 	"golang.org/x/net/ipv6"
 	"log"
 	"net"
+	"time"
 )
+
+const ProtocolIPv6ICMP = 58
 
 func serveICMP() {
 	conn, err := icmp.ListenPacket("ip6:ipv6-icmp", "::")
@@ -31,9 +34,19 @@ func serveICMP() {
 
 func handleICMP(conn *ipv6.PacketConn) error {
 	buf := make([]byte, 64)
-	_, _, addr, err := conn.ReadFrom(buf)
+	n, _, addr, err := conn.ReadFrom(buf)
 	if err != nil {
 		return err
+	}
+
+	start := time.Now()
+
+	icmpMsg, err := icmp.ParseMessage(ProtocolIPv6ICMP, buf[:n])
+	if err != nil {
+		return err
+	}
+	if icmpMsg.Type != ipv6.ICMPTypeEchoRequest { // only accept ping
+		return nil
 	}
 
 	ipAddr, ok := addr.(*net.IPAddr)
@@ -42,8 +55,9 @@ func handleICMP(conn *ipv6.PacketConn) error {
 	}
 
 	pixel := lib.IP2Pixel(ipAddr.IP)
-	IMG.Modify(pixel)
-	log.Println(addr, pixel.String())
+	modifyImage(pixel)
+
+	log.Printf("%s %dμs", addr, time.Since(start).Microseconds())
 
 	return nil
 }

@@ -2,6 +2,7 @@ package lib
 
 import (
 	"encoding/json"
+	"fmt"
 	"image"
 	"image/color"
 	"log"
@@ -13,32 +14,42 @@ type Pixel struct {
 	Color color.NRGBA `json:"color"`
 }
 
-func IP2Pixel(ip net.IP) Pixel {
-	return Pixel{
-		Point: image.Point{
-			X: int(ip[8])<<8 + int(ip[9]),
-			Y: int(ip[10])<<8 + int(ip[11]),
-		},
-		Color: color.NRGBA{
-			R: ip[12],
-			G: ip[13],
-			B: ip[14],
-			A: ip[15],
-		},
-	}
+func (p *Pixel) Marshal() []byte {
+	data := make([]byte, 9)
+	data[0] = MessageTypePixel
+	data[1] = byte(p.Point.X >> 8)
+	data[2] = byte(p.Point.X)
+	data[3] = byte(p.Point.Y >> 8)
+	data[4] = byte(p.Point.Y)
+	data[5] = p.Color.R
+	data[6] = p.Color.G
+	data[7] = p.Color.B
+	data[8] = p.Color.A
+	return data
 }
 
-func Pixel2IP(p Pixel) net.IP {
-	ip := make(net.IP, 16)
-	ip[8] = byte(p.Point.X >> 8)
-	ip[9] = byte(p.Point.X)
-	ip[10] = byte(p.Point.Y >> 8)
-	ip[11] = byte(p.Point.Y)
-	ip[12] = p.Color.R
-	ip[13] = p.Color.G
-	ip[14] = p.Color.B
-	ip[15] = p.Color.A
-	return ip
+func (p *Pixel) Unmarshal(data []byte) error {
+	if len(data) != 9 || data[0] != MessageTypePixel {
+		return fmt.Errorf("invalid pixel data: %v", data)
+	}
+	p.Point.X = int(data[1])<<8 + int(data[2])
+	p.Point.Y = int(data[3])<<8 + int(data[4])
+	p.Color.R = data[5]
+	p.Color.G = data[6]
+	p.Color.B = data[7]
+	p.Color.A = data[8]
+	return nil
+}
+
+func IP2Pixel(ip net.IP) Pixel {
+	data := ip[7:16]
+	data[0] = MessageTypePixel
+	p := Pixel{}
+	err := p.Unmarshal(data)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return p
 }
 
 func (p *Pixel) String() string {

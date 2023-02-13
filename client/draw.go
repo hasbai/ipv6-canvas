@@ -19,7 +19,7 @@ func Draw(filepath, cidr string, resize, offset image.Point) {
 			if p.Color.R == 255 && p.Color.G == 255 && p.Color.B == 255 {
 				continue
 			}
-			ip := append(prefix, lib.Pixel2IP(p)[8:]...)
+			ip := append(prefix, p.Marshal()[1:]...)
 			err := ping(ip, conn)
 			if err != nil {
 				log.Fatalf("error ping %s: %v", ip, err)
