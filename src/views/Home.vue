@@ -147,28 +147,37 @@ function hidePixelInfo() {
 }
 
 function connectWs() {
-  const connect = () => {
-    return new WebSocket(window.location.origin.replace('http', 'ws') + '/ws')
-  }
-  let ws = connect()
+  const ws = new WebSocket(
+      window.location.origin.replace("http", "ws") + "/ws"
+  );
+  ws.binaryType = "arraybuffer";
   ws.onopen = () => {
-    console.log('websocket connected')
-  }
+    console.log("websocket connected");
+  };
   ws.onerror = () => {
-    console.log('websocket connect failed')
-  }
+    console.log("websocket connect failed");
+  };
   ws.onclose = () => {
-    console.log('websocket disconnected')
-  }
-  ws.onmessage = onMessage
+    console.log("websocket disconnected");
+  };
+  ws.onmessage = onMessage;
 }
 
 function onMessage(e: MessageEvent) {
-  const data = JSON.parse(e.data)
-  if (data.type === 'pixel') {
-    drawPixel(data.data)
+  const data = new Uint8Array(e.data);
+  switch (data[0]) {
+    case MessageType.Pixel:
+      const pixel = Pixel.fromBytes(data);
+      console.log(pixel)
+      drawPixel(pixel);
+      break;
   }
 }
+
+const MessageType = {
+  Pixel: 0x1,
+  MetaData: 0x2,
+};
 
 const targetRatio = 24
 const ratio = ref(1)
@@ -182,8 +191,8 @@ let fixedCanvas: HTMLCanvasElement
 let fixedCtx: CanvasRenderingContext2D
 
 // window.$message = useMessage()
-document.addEventListener('keydown', onKeyDown)
 connectWs()
+document.addEventListener('keydown', onKeyDown)
 
 onMounted(async () => {
   console.log('mounted')

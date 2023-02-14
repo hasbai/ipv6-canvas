@@ -16,12 +16,12 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      // "/image": {
-      //   target: "https://dev.x.hath.top:8443/",
-      //   changeOrigin: true,
-      //   ws: true,
-      //   secure: false,
-      // },
+        "/ws": {
+            target: "https://dev.x.hath.top:8443/",
+            changeOrigin: true,
+            ws: true,
+            secure: false,
+        },
     },
   },
 });

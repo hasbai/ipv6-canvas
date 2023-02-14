@@ -28,5 +28,13 @@ export class Color {
 }
 
 export class Pixel {
-  constructor(public coordinate: Point, public color: Color) {}
+    constructor(public coordinate: Point, public color: Color) {
+    }
+
+    static fromBytes(data: Uint8Array): Pixel {
+        return new Pixel(
+            new Point((data[1] << 8) | data[2], (data[3] << 8) | data[4]),
+            new Color(data[5], data[6], data[7], data[8])
+        );
+    }
 }
